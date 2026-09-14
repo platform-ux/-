@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>공감 댓글 생성기</title>
+<style>
+  :root{
+    --bg:#f6f6f4; --panel:#fff; --ink:#1c1b19; --muted:#6f6b65;
+    --line:#e3e1dc; --accent:#2f6f5e; --accent-soft:#e8f1ee;
+    --warn:#a8500f; --warn-soft:#fdf0e4; --radius:12px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#17181a; --panel:#1f2124; --ink:#ececea; --muted:#9a968f;
+      --line:#32353a; --accent:#6fbfa5; --accent-soft:#223630;
+      --warn:#e0a06a; --warn-soft:#37291c;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;}
+  .wrap{max-width:820px;margin:0 auto;padding:28px 16px 72px}
+  header{display:flex;align-items:baseline;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+  h1{font-size:19px;margin:0;letter-spacing:-.3px}
+  header .sub{color:var(--muted);font-size:13px}
+  nav{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+  nav button{background:none;border:0;padding:9px 14px;font-size:14px;color:var(--muted);
+    cursor:pointer;border-bottom:2px solid transparent;font-family:inherit}
+  nav button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  textarea,input,select{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:10px 11px;font:inherit;font-size:14px;outline:none}
+  textarea{resize:vertical;line-height:1.65}
+  textarea:focus,input:focus,select:focus{border-color:var(--accent)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .row>div{flex:1;min-width:140px}
+  button.go{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:11px 20px;
+    font:inherit;font-weight:600;cursor:pointer}
+  button.go:disabled{opacity:.5;cursor:default}
+  button.ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:7px;
+    padding:5px 11px;font:inherit;font-size:12.5px;cursor:pointer}
+  button.ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .bar{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap}
+  .hint{color:var(--muted);font-size:12.5px}
+  details{margin-top:12px}
+  summary{cursor:pointer;font-size:13px;color:var(--muted)}
+  .reading{background:var(--accent-soft);border-radius:10px;padding:13px 15px;margin-bottom:14px;font-size:13.5px}
+  .reading div+div{margin-top:4px}
+  .reading b{font-weight:600;color:var(--muted);margin-right:6px}
+  .card{border:1px solid var(--line);border-radius:10px;padding:14px 15px;margin-bottom:10px;background:var(--panel)}
+  .card .txt{white-space:pre-wrap;font-size:15px}
+  .card .foot{display:flex;align-items:center;gap:8px;margin-top:11px;flex-wrap:wrap}
+  .tag{font-size:11.5px;color:var(--accent);background:var(--accent-soft);padding:2px 8px;border-radius:99px}
+  .warn{font-size:12px;color:var(--warn);background:var(--warn-soft);padding:6px 10px;border-radius:7px;margin-top:9px}
+  .sample{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:9px}
+  .sample .src{color:var(--muted);font-size:13px;white-space:pre-wrap;margin-bottom:7px;
+    padding-left:9px;border-left:2px solid var(--line)}
+  .sample .cmt{white-space:pre-wrap;font-size:14px}
+  .err{background:var(--warn-soft);color:var(--warn);padding:12px 14px;border-radius:9px;font-size:13.5px;
+    white-space:pre-wrap;margin-bottom:12px}
+  .ok{color:var(--accent);font-size:13px}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--line);
+    border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  h3{font-size:14px;margin:22px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  h3:first-child{margin-top:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>공감 댓글 생성기</h1>
+    <span class="sub">글을 붙여넣으면 내 말투로 댓글 후보를 만들어 줍니다</span>
+  </header>
+
+  <nav>
+    <button class="on" data-tab="gen">댓글 생성</button>
+    <button data-tab="cfg">말투 설정</button>
+    <button data-tab="smp">내 댓글 샘플</button>
+  </nav>
+
+  <!-- ─────────── 댓글 생성 ─────────── -->
+  <section id="tab-gen">
+    <div class="panel">
+      <label for="post">상대방 글</label>
+      <textarea id="post" rows="7" placeholder="댓글을 달고 싶은 글을 그대로 붙여넣으세요."></textarea>
+
+      <div class="row">
+        <div>
+          <label for="count">후보 개수</label>
+          <select id="count">
+            <option>2</option><option>3</option><option selected>4</option>
+            <option>5</option><option>6</option>
+          </select>
+        </div>
+        <div style="flex:3">
+          <label for="extra">이번 건 추가 주문 (선택)</label>
+          <input id="extra" placeholder="예: 좀 더 가볍게 / 축하 위주로 / 질문 하나 붙여줘">
+        </div>
+      </div>
+
+      <details>
+        <summary>이번만 말투 살짝 바꾸기</summary>
+        <div class="row">
+          <div>
+            <label for="ov-speech">말투</label>
+            <select id="ov-speech"><option value="">설정 그대로</option>
+              <option>존댓말</option><option>해요체</option><option>반말</option></select>
+          </div>
+          <div>
+            <label for="ov-length">길이</label>
+            <select id="ov-length"><option value="">설정 그대로</option>
+              <option>짧게</option><option>보통</option><option>길게</option></select>
+          </div>
+          <div>
+            <label for="ov-energy">텐션</label>
+            <select id="ov-energy"><option value="">설정 그대로</option>
+              <option value="1">1 차분</option><option value="2">2</option><option value="3">3</option>
+              <option value="4">4</option><option value="5">5 신남</option></select>
+          </div>
+          <div>
+            <label for="ov-emoji">이모지</label>
+            <select id="ov-emoji"><option value="">설정 그대로</option>
+              <option value="0">안 씀</option><option value="1">가끔</option><option value="2">자주</option></select>
+          </div>
+        </div>
+      </details>
+
+      <div class="bar">
+        <button class="go" id="btn-gen">댓글 만들기</button>
+        <span class="hint">Ctrl/⌘ + Enter</span>
+        <span class="hint" id="gen-status"></span>
+      </div>
+    </div>
+
+    <div id="out"></div>
+  </section>
+
+  <!-- ─────────── 말투 설정 ─────────── -->
+  <section id="tab-cfg" hidden>
+    <div class="panel">
+      <h3>내 캐릭터</h3>
+      <label for="c-persona">모델이 가장 크게 참고하는 항목입니다. 평소 댓글 스타일을 한 문단으로 적어주세요.</label>
+      <textarea id="c-persona" rows="4"></textarea>
+
+      <h3>말투</h3>
+      <div class="row" style="margin-top:0">
+        <div><label for="c-speech">어투</label>
+          <select id="c-speech"><option>존댓말</option><option>해요체</option><option>반말</option></select></div>
+        <div><label for="c-length">길이</label>
+          <select id="c-length"><option>짧게</option><option>보통</option><option>길게</option></select></div>
+      </div>
+      <div class="row">
+        <div><label for="c-closeness">거리감 (1 정중 ~ 5 절친)</label>
+          <select id="c-closeness"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+        <div><label for="c-energy">텐션 (1 차분 ~ 5 신남)</label>
+          <select id="c-energy"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+        <div><label for="c-emoji">이모지</label>
+          <select id="c-emoji"><option value="0">안 씀</option><option value="1">가끔</option><option value="2">자주</option></select></div>
+      </div>
+
+      <h3>규칙</h3>
+      <label for="c-banned">금지어 — 한 줄에 하나씩. 이 표현이 들어가면 경고가 표시됩니다.</label>
+      <textarea id="c-banned" rows="4" placeholder="화이팅&#10;힘내세요"></textarea>
+      <div style="margin-top:12px">
+        <label for="c-required">필수 표현 — 한 줄에 하나씩 (없으면 비워두세요)</label>
+        <textarea id="c-required" rows="2"></textarea>
+      </div>
+      <div style="margin-top:12px">
+        <label for="c-extra">그 밖의 내 습관 — 한 줄에 하나씩</label>
+        <textarea id="c-extra" rows="4" placeholder="- 물결표는 쓰지 않음&#10;- 느낌표는 한 댓글에 최대 1개"></textarea>
+      </div>
+
+      <h3>생성 옵션</h3>
+      <div class="row" style="margin-top:0">
+        <div><label for="c-candidates">기본 후보 개수</label>
+          <input id="c-candidates" type="number" min="1" max="8"></div>
+        <div><label for="c-effort">공들이기 (높을수록 정교·느림)</label>
+          <select id="c-effort"><option>low</option><option>medium</option><option>high</option></select></div>
+      </div>
+
+      <div class="bar">
+        <button class="go" id="btn-save-cfg">설정 저장</button>
+        <span class="hint" id="cfg-status"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 샘플 ─────────── -->
+  <section id="tab-smp" hidden>
+    <div class="panel">
+      <h3>샘플 추가</h3>
+      <label for="s-src">상대 글 (모르면 비워도 됩니다)</label>
+      <textarea id="s-src" rows="3"></textarea>
+      <div style="margin-top:12px">
+        <label for="s-cmt">내가 실제로 쓴 댓글</label>
+        <textarea id="s-cmt" rows="3"></textarea>
+      </div>
+      <div class="bar">
+        <button class="go" id="btn-add-smp">샘플 추가</button>
+        <span class="hint" id="smp-status"></span>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>등록된 샘플 <span class="hint" id="smp-count"></span></h3>
+      <div id="smp-list"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function api(path, opts) {
+  const res = await fetch(path, {
+    headers: {"Content-Type": "application/json"},
+    ...opts,
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.detail || `요청 실패 (${res.status})`);
+  return body;
+}
+
+function flash(el, msg, ok = true) {
+  el.textContent = msg;
+  el.className = ok ? "ok" : "hint";
+  setTimeout(() => { el.textContent = ""; }, 2600);
+}
+
+/* ── 탭 ── */
+document.querySelectorAll("nav button").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b === btn));
+    ["gen", "cfg", "smp"].forEach(t => { $("tab-" + t).hidden = t !== btn.dataset.tab; });
+    if (btn.dataset.tab === "smp") loadSamples();
+    if (btn.dataset.tab === "cfg") loadConfig();
+  };
+});
+
+/* ── 댓글 생성 ── */
+function overrides() {
+  const tone = {};
+  if ($("ov-speech").value) tone.speech_level = $("ov-speech").value;
+  if ($("ov-length").value) tone.length = $("ov-length").value;
+  if ($("ov-energy").value) tone.energy = Number($("ov-energy").value);
+  if ($("ov-emoji").value) tone.emoji = Number($("ov-emoji").value);
+  return Object.keys(tone).length ? {tone} : null;
+}
+
+async function generate() {
+  const text = $("post").value.trim();
+  if (!text) { $("post").focus(); return; }
+
+  $("btn-gen").disabled = true;
+  $("gen-status").innerHTML = '<span class="spin"></span> 읽는 중…';
+  $("out").innerHTML = "";
+
+  try {
+    const data = await api("/api/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        text,
+        count: Number($("count").value),
+        extra_instruction: $("extra").value,
+        overrides: overrides(),
+      }),
+    });
+    render(data);
+    $("gen-status").textContent = "";
+  } catch (e) {
+    $("out").innerHTML = `<div class="err">${esc(e.message)}</div>`;
+    $("gen-status").textContent = "";
+  } finally {
+    $("btn-gen").disabled = false;
+  }
+}
+
+function render(data) {
+  const r = data.reading || {};
+  const sensitive = r.sensitivity === "민감";
+  let html = `<div class="reading">
+      <div><b>감정</b>${esc(r.emotion)}</div>
+      <div><b>상황</b>${esc(r.situation)}</div>
+      <div><b>바라는 것</b>${esc(r.wants)}</div>
+      ${sensitive ? '<div><b>주의</b>무게 있는 글로 판단해 톤을 낮췄습니다</div>' : ''}
+    </div>`;
+
+  (data.comments || []).forEach((c, i) => {
+    const warns = (c.warnings || []).length
+      ? `<div class="warn">⚠ ${c.warnings.map(esc).join(" · ")}</div>` : "";
+    html += `<div class="card">
+        <div class="txt" id="c${i}">${esc(c.text)}</div>${warns}
+        <div class="foot">
+          <span class="tag">${esc(c.angle)}</span>
+          <button class="ghost" data-copy="${i}">복사</button>
+          <button class="ghost" data-save="${i}">이 말투 샘플로 저장</button>
+        </div>
+      </div>`;
+  });
+  $("out").innerHTML = html;
+
+  $("out").querySelectorAll("[data-copy]").forEach(btn => {
+    btn.onclick = async () => {
+      const text = $("c" + btn.dataset.copy).textContent;
+      try { await navigator.clipboard.writeText(text); }
+      catch { /* 클립보드 차단 환경 */ }
+      btn.textContent = "복사됨";
+      setTimeout(() => { btn.textContent = "복사"; }, 1500);
+    };
+  });
+  $("out").querySelectorAll("[data-save]").forEach(btn => {
+    btn.onclick = async () => {
+      await api("/api/samples", {
+        method: "POST",
+        body: JSON.stringify({source: $("post").value.trim(), comment: $("c" + btn.dataset.save).textContent}),
+      });
+      btn.textContent = "샘플에 추가됨";
+      btn.disabled = true;
+    };
+  });
+}
+
+$("btn-gen").onclick = generate;
+document.addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") generate();
+});
+
+/* ── 말투 설정 ── */
+const lines = (s) => String(s || "").split("\n").map(x => x.trim()).filter(Boolean);
+
+async function loadConfig() {
+  const cfg = await api("/api/config");
+  const t = cfg.tone || {}, r = cfg.rules || {}, g = cfg.generation || {};
+  $("c-persona").value = t.persona || "";
+  $("c-speech").value = t.speech_level || "해요체";
+  $("c-length").value = t.length || "짧게";
+  $("c-closeness").value = t.closeness ?? 3;
+  $("c-energy").value = t.energy ?? 3;
+  $("c-emoji").value = String(t.emoji ?? 1);
+  $("c-banned").value = (r.banned || []).join("\n");
+  $("c-required").value = (r.required || []).join("\n");
+  $("c-extra").value = r.extra || "";
+  $("c-candidates").value = g.candidates ?? 4;
+  $("c-effort").value = g.effort || "medium";
+}
+
+$("btn-save-cfg").onclick = async () => {
+  try {
+    await api("/api/config", {
+      method: "PUT",
+      body: JSON.stringify({
+        tone: {
+          persona: $("c-persona").value,
+          speech_level: $("c-speech").value,
+          length: $("c-length").value,
+          closeness: Number($("c-closeness").value),
+          energy: Number($("c-energy").value),
+          emoji: Number($("c-emoji").value),
+        },
+        rules: {
+          banned: lines($("c-banned").value),
+          required: lines($("c-required").value),
+          extra: $("c-extra").value,
+        },
+        generation: {
+          candidates: Number($("c-candidates").value),
+          effort: $("c-effort").value,
+        },
+      }),
+    });
+    $("count").value = String($("c-candidates").value);
+    flash($("cfg-status"), "저장했습니다");
+  } catch (e) {
+    flash($("cfg-status"), e.message, false);
+  }
+};
+
+/* ── 샘플 ── */
+async function loadSamples() {
+  const samples = await api("/api/samples");
+  $("smp-count").textContent = `${samples.length}개`;
+  $("smp-list").innerHTML = samples.length
+    ? samples.map((s, i) => `<div class="sample">
+        ${s.source ? `<div class="src">${esc(s.source)}</div>` : ""}
+        <div class="cmt">${esc(s.comment)}</div>
+        <div class="foot"><button class="ghost" data-del="${i}">삭제</button></div>
+      </div>`).join("")
+    : `<div class="hint">아직 샘플이 없습니다. 예전에 직접 썼던 댓글을 10개쯤 넣어두면 말투가 훨씬 비슷해집니다.</div>`;
+
+  $("smp-list").querySelectorAll("[data-del]").forEach(btn => {
+    btn.onclick = async () => {
+      await api(`/api/samples/${btn.dataset.del}`, {method: "DELETE"});
+      loadSamples();
+    };
+  });
+}
+
+$("btn-add-smp").onclick = async () => {
+  try {
+    await api("/api/samples", {
+      method: "POST",
+      body: JSON.stringify({source: $("s-src").value, comment: $("s-cmt").value}),
+    });
+    $("s-src").value = ""; $("s-cmt").value = "";
+    flash($("smp-status"), "추가했습니다");
+    loadSamples();
+  } catch (e) {
+    flash($("smp-status"), e.message, false);
+  }
+};
+
+loadConfig().then(() => { $("count").value = String($("c-candidates").value || 4); });
+</script>
+</body>
+</html>
