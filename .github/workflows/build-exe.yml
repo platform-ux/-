@@ -1,0 +1,64 @@
+name: Build Windows exe
+
+on:
+  push:
+    paths:
+      - "yeogi_photos.py"
+      - "yeogi_gui.py"
+      - "tests/**"
+      - "사용법.txt"
+      - ".github/workflows/build-exe.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install packages
+        run: python -m pip install playwright pillow pyinstaller
+
+      - name: Build exe
+        run: >
+          pyinstaller --noconfirm --onefile --windowed
+          --name YeogiPhotoDownloader
+          --collect-all playwright
+          yeogi_gui.py
+
+      # 빌드된 exe로 가짜 숙소 페이지(메인 14장 + 객실/후기 사진)를 실제로 받아 보는 점검
+      - name: Test built exe against mock site
+        shell: pwsh
+        run: |
+          python tests/make_mock_site.py "$env:RUNNER_TEMP\mock"
+          $server = Start-Process python -ArgumentList "-m","http.server","8766","--bind","127.0.0.1" -WorkingDirectory "$env:RUNNER_TEMP\mock" -PassThru
+          Start-Sleep 3
+          $out = "$env:RUNNER_TEMP\out"
+          $p = Start-Process dist\YeogiPhotoDownloader.exe -ArgumentList "--selftest","http://127.0.0.1:8766/domestic-accommodations/86130/",$out -Wait -PassThru
+          Stop-Process $server.Id
+          Get-Content "$out\selftest.log" -Encoding utf8
+          $r = Get-Content "$out\selftest.json" -Encoding utf8 | ConvertFrom-Json
+          $r | Format-List
+          $m = Get-Content (Join-Path $r.folder "manifest.json") -Encoding utf8 | ConvertFrom-Json
+          $small = @($m.photos | Where-Object { $_.width -ne 1600 })
+          $other = @($m.photos | Where-Object { $_.url -notmatch "/86130/" })
+          if ($p.ExitCode -ne 0 -or $r.collected -ne 14 -or $r.ok -ne 14 -or $small.Count -or $other.Count) {
+            throw "exe self-test failed (exit=$($p.ExitCode), collected=$($r.collected), ok=$($r.ok), not-largest=$($small.Count), non-gallery=$($other.Count))"
+          }
+          "exe self-test passed: 14/14 main photos at largest size, no room/review photos"
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory release | Out-Null
+          Copy-Item dist\YeogiPhotoDownloader.exe release\
+          Copy-Item "사용법.txt" release\
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YeogiPhotoDownloader-windows
+          path: release\
