@@ -343,7 +343,14 @@
           <div>
             <label for="ov-speech">어투</label>
             <select id="ov-speech">
-              <option value="">설정 그대로</option><option>존댓말</option><option>해요체</option><option>반말</option>
+              <option value="">설정 그대로</option>
+              <option value="존댓말">존댓말 (~습니다)</option>
+              <option value="해요체">해요체 (~해요)</option>
+              <option value="구어체">구어체 (말하듯이)</option>
+              <option value="애교체">애교체 (~용, ~당)</option>
+              <option value="해요체+반말">해요체 + 반말 섞기</option>
+              <option value="음슴체">음슴체 (~음, ~슴)</option>
+              <option value="반말">반말 (~해)</option>
             </select>
           </div>
           <div>
@@ -417,7 +424,15 @@
         <div class="grid">
           <div>
             <label for="v-speech">어투</label>
-            <select id="v-speech"><option>존댓말</option><option>해요체</option><option>반말</option></select>
+            <select id="v-speech">
+              <option value="존댓말">존댓말 (~습니다)</option>
+              <option value="해요체">해요체 (~해요)</option>
+              <option value="구어체">구어체 (말하듯이)</option>
+              <option value="애교체">애교체 (~용, ~당)</option>
+              <option value="해요체+반말">해요체 + 반말 섞기</option>
+              <option value="음슴체">음슴체 (~음, ~슴)</option>
+              <option value="반말">반말 (~해)</option>
+            </select>
           </div>
           <div>
             <label for="v-length">길이</label>
@@ -757,7 +772,17 @@
     2: "이모지를 편하게 쓴다. 다만 한 댓글에 2개를 넘기지 않는다.",
   };
   const CLOSENESS = { 1: "정중하고 조심스럽게", 2: "정중하게", 3: "편하지만 예의는 지키게", 4: "친근하게", 5: "친한 친구처럼 편하게" };
-  const ENERGY = { 1: "차분하고 담백하게", 2: "담백하게", 3: "적당한 리액션", 4: "리액션 있게", 5: "리액션 크게" };
+
+  /* 어투. 라벨만 던지면 모델이 흉내를 못 내니 끝맺는 법까지 적어준다. */
+  const SPEECH_GUIDE = {
+    "존댓말": "존댓말(합쇼체). 문장을 \"~습니다\", \"~입니다\", \"~네요\"로 끝낸다. 격식 있고 단정하게.",
+    "해요체": "해요체. 문장을 \"~해요\", \"~네요\", \"~같아요\"로 끝낸다. 존대하되 부드럽고 편하게.",
+    "구어체": "말하듯이 쓴다. 완결된 문장보다 끊어지는 호흡과 추임새를 살린다 (\"와 이거\", \"근데 진짜\"). 존대는 유지한다.",
+    "애교체": "끝을 늘리는 애교 섞인 말투. \"~용\", \"~당\", \"~넹\"으로 끝낸다. 다만 과하면 유치해지니 한 댓글에 한두 번까지만 쓰고 나머지는 평범한 해요체로.",
+    "해요체+반말": "기본은 해요체인데 중간중간 반말을 섞는다. 혼잣말이나 감탄은 반말로 흘리고(\"와 이거 진짜 맛있겠다\"), 상대에게 건네는 말은 해요체로 돌아온다(\"저도 가봐야겠어요\").",
+    "음슴체": "음슴체. 문장을 \"~음\", \"~슴\", \"~함\"처럼 명사형으로 끝낸다. 군더더기 없이 툭툭 던지듯 (\"분위기 좋아 보임\", \"저장각임\").",
+    "반말": "반말. 문장을 \"~해\", \"~야\", \"~더라\", \"~네\"로 끝낸다. 친구에게 말하듯.",
+  };  const ENERGY = { 1: "차분하고 담백하게", 2: "담백하게", 3: "적당한 리액션", 4: "리액션 있게", 5: "리액션 크게" };
 
   const bullets = (text) =>
     String(text || "").split("\n").map((l) => l.trim().replace(/^[-·•]\s*/, "")).filter(Boolean);
@@ -767,7 +792,7 @@
    *  omitLength: 부르는 쪽이 길이를 따로 지정할 때(공통 멘트 탭) 저장된 길이를 빼서 충돌을 막는다. */
   function voiceBlock(s, rules, sampleBlock, newSentenceHint, omitLength) {
     return [
-      "- 말투: " + s.speech,
+      "- 말투: " + (SPEECH_GUIDE[s.speech] || s.speech),
       "- 거리감: 5점 중 " + s.closeness + "점 (" + (CLOSENESS[s.closeness] || CLOSENESS[3]) + ")",
       "- 텐션: 5점 중 " + s.energy + "점 (" + (ENERGY[s.energy] || ENERGY[3]) + ")",
       "- 이모지: " + (EMOJI_GUIDE[s.emoji] || EMOJI_GUIDE[1]),
