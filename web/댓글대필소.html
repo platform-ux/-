@@ -763,13 +763,15 @@
     String(text || "").split("\n").map((l) => l.trim().replace(/^[-·•]\s*/, "")).filter(Boolean);
 
   /** 말투 + 규칙 + 샘플 — 댓글 프롬프트와 공통 멘트 프롬프트가 같이 쓴다. */
-  function voiceBlock(s, rules, sampleBlock, newSentenceHint) {
+  /** 말투 + 규칙 + 샘플 — 댓글 프롬프트와 공통 멘트 프롬프트가 같이 쓴다.
+   *  omitLength: 부르는 쪽이 길이를 따로 지정할 때(공통 멘트 탭) 저장된 길이를 빼서 충돌을 막는다. */
+  function voiceBlock(s, rules, sampleBlock, newSentenceHint, omitLength) {
     return [
       "- 말투: " + s.speech,
       "- 거리감: 5점 중 " + s.closeness + "점 (" + (CLOSENESS[s.closeness] || CLOSENESS[3]) + ")",
       "- 텐션: 5점 중 " + s.energy + "점 (" + (ENERGY[s.energy] || ENERGY[3]) + ")",
       "- 이모지: " + (EMOJI_GUIDE[s.emoji] || EMOJI_GUIDE[1]),
-      "- 길이: " + (LENGTH_GUIDE[s.length] || LENGTH_GUIDE["짧게"]),
+      omitLength ? "" : "- 길이: " + (LENGTH_GUIDE[s.length] || LENGTH_GUIDE["짧게"]),
       s.persona.trim() ? "- 내 캐릭터:\n" + s.persona.trim().split("\n").map((l) => "    " + l).join("\n") : "",
       "",
       "## 반드시 지킬 규칙",
@@ -1359,7 +1361,7 @@
       toneRule(mix, n),
       "",
       "# 내 말투 (가장 중요)",
-      voiceBlock(s, rulesOf(s), sampleBlockOf(), catName + " 글에 쓸 새 문장을 쓴다"),
+      voiceBlock(s, rulesOf(s), sampleBlockOf(), catName + " 글에 쓸 새 문장을 쓴다", true),
       extra.trim()
         ? "\n# 이번 뽑기 조건\n" + extra.trim() +
           "\n이 조건은 위 '내 말투' 규칙을 어기지 않는 선에서 지킨다. 둘이 부딪히면 말투 규칙이 우선이다."
