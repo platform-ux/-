@@ -356,7 +356,7 @@
           <div>
             <label for="ov-length">길이</label>
             <select id="ov-length">
-              <option value="">설정 그대로</option><option>짧게</option><option>보통</option><option>길게</option>
+              <option value="">설정 그대로</option><option value="한 줄">한 줄</option><option value="짧게">짧게</option><option value="보통">보통</option><option value="길게">길게</option><option value="아주 길게">아주 길게</option><option value="줄바꿈 나열">줄바꿈 나열</option><option value="길이 섞기">길이 섞기</option>
             </select>
           </div>
           <div>
@@ -436,7 +436,7 @@
           </div>
           <div>
             <label for="v-length">길이</label>
-            <select id="v-length"><option>짧게</option><option>보통</option><option>길게</option></select>
+            <select id="v-length"><option value="한 줄">한 줄</option><option value="짧게">짧게</option><option value="보통">보통</option><option value="길게">길게</option><option value="아주 길게">아주 길게</option><option value="줄바꿈 나열">줄바꿈 나열</option><option value="길이 섞기">길이 섞기</option></select>
           </div>
           <div>
             <label for="v-closeness">거리감</label>
@@ -568,11 +568,7 @@
         </div>
         <div class="opt">
           <label for="stock-length">길이</label>
-          <select id="stock-length">
-            <option value="한 줄">한 줄</option>
-            <option value="두세 줄" selected>두세 줄</option>
-            <option value="네 줄">네 줄</option>
-          </select>
+          <select id="stock-length"><option value="한 줄">한 줄</option><option value="짧게">짧게</option><option value="보통" selected>보통</option><option value="길게">길게</option><option value="아주 길게">아주 길게</option><option value="줄바꿈 나열">줄바꿈 나열</option><option value="길이 섞기">길이 섞기</option></select>
         </div>
         <div class="opt">
           <label for="stock-count">개수</label>
@@ -762,10 +758,17 @@
 
   /* ────────── 프롬프트 조립 ────────── */
   const LENGTH_GUIDE = {
+    "한 줄": "딱 한 문장. 짧게 툭 던지고 끝낸다.",
     "짧게": "1~2문장. 군더더기 없이.",
     "보통": "2~3문장.",
-    "길게": "4문장 이상. 다만 늘어지지 않게.",
+    "길게": "4~5문장. 다만 늘어지지 않게.",
+    "아주 길게": "6문장 이상. 정성 들여 쓴 티가 나되, 할 말이 있을 때만 길어진다. 분량 채우려고 같은 말을 돌려 쓰지 않는다.",
+    "줄바꿈 나열": "줄바꿈으로 한 줄에 한 가지씩, 3~4줄. 각 줄은 짧게 끊는다.",
+    "길이 섞기": "길이를 서로 다르게 한다. 한 문장짜리와 네댓 문장짜리가 같이 섞여 있어야 한다.",
   };
+  // 예전에 저장된 공통 멘트 길이 값을 새 이름으로 옮긴다
+  const LEGACY_LENGTH = { "두세 줄": "보통", "네 줄": "길게" };
+  const normLength = (v) => LEGACY_LENGTH[v] || (LENGTH_GUIDE[v] ? v : "보통");
   const EMOJI_GUIDE = {
     0: "이모지와 이모티콘을 쓰지 않는다.",
     1: "이모지는 꼭 필요할 때만 하나 정도. 없어도 된다.",
@@ -1306,11 +1309,6 @@
   }
 
   /* ────────── 공통 멘트: 생성 ────────── */
-  const STOCK_LENGTH = {
-    "한 줄": "한 문장. 짧고 담백하게.",
-    "두세 줄": "두세 문장. 줄바꿈으로 나눠도 좋다.",
-    "네 줄": "네 문장 정도. 늘어지지 않게.",
-  };
 
   /* 말투 프리셋. 하나만 고르면 rule 이, '섞기'면 mixLine 들이 프롬프트에 들어간다. */
   const TONES = [
@@ -1382,7 +1380,7 @@
       "- 겪지 않은 일을 지어내지 않는다. \"저도 가봤는데\", \"먹어봤는데\" 같은 거짓 경험은 금지.",
       "  대신 \"가보고 싶다\", \"궁금하다\", \"저장해둔다\" 같은 안 겪은 사람의 반응으로 쓴다.",
       "- " + n + "개가 서로 확실히 달라야 한다. 시작 문구와 끝 어미가 겹치면 안 된다.",
-      "- 길이: " + (STOCK_LENGTH[lengthKey] || STOCK_LENGTH["두세 줄"]),
+      "- 길이: " + (LENGTH_GUIDE[lengthKey] || LENGTH_GUIDE["보통"]),
       toneRule(mix, n),
       "",
       "# 내 말투 (가장 중요)",
@@ -1511,7 +1509,7 @@
     // 카테고리마다 마지막에 쓰던 조건·옵션을 되살린다
     $("stock-extra").value = (data && data.extra) || "";
     $("stock-mix").value = (data && data.mix) || "mix";
-    $("stock-length").value = (data && data.length) || "두세 줄";
+    $("stock-length").value = normLength(data && data.length);
     $("stock-count").value = String((data && data.count) || 8);
 
     $("stock-updated").textContent = data && data.updatedAt
